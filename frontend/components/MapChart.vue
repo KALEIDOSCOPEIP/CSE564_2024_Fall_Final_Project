@@ -37,13 +37,14 @@ const updateMap = async (date, pollutant) => {
   });
 
   const newData = res.data;
-  const seriesData = newData.map(d => {
-            provinceDetails.value[d.province] = d
-            return {
-                name: d.province,
-                value: d.gdp // 可替换为 d.population 显示人口
-            }
-        })
+  console.log(newData);
+//   const seriesData = newData.map(d => {
+//             provinceDetails.value[d.province] = d
+//             return {
+//                 name: d.province,
+//                 value: d.gdp // 可替换为 d.population 显示人口
+//             }
+//         })
   const currentOptions = chart.value.getOption();
 //   chart.value.setOption({
 //     series: [{
@@ -64,7 +65,7 @@ const updateMap = async (date, pollutant) => {
     title: {
       text: `
       Date: ${String(date).slice(0, 4)}-${String(date).slice(4, 6)}
-      
+
       Pollutant: ${pollutant}
       `,
       left: 'center',
