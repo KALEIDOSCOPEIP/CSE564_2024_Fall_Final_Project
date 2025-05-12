@@ -1,7 +1,7 @@
 <template>
     <div class="sunburst-chart-container">
         <h2 style="text-align: center; margin-top: -1rem; color: azure;">Top-5 of Each Air Pollutant</h2>
-        <div class="sunburst-sector">
+        <div class="sunburst-sector" style="position:relative;">
             <v-chart
             v-if="option"
             :option="option"
@@ -9,6 +9,9 @@
             @click="handleClick"
             class="sunburst-chart"
         />
+            <div v-if="isLoading" class="loading-overlay">
+                <div class="spinner"></div>
+            </div>
         </div>
     </div>
 </template>
@@ -147,8 +150,10 @@ const pollutantColors = {
 }
 
 const option = ref(null)
+const isLoading = ref(false)
 
 onMounted(async () => {
+  isLoading.value = true
   try {
     const { data } = await axios.get('http://localhost:5000/api/sunburst-data')
 
@@ -216,6 +221,8 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('❌ 获取旭日图数据失败:', error)
+  } finally {
+    isLoading.value = false
   }
 })
 
@@ -259,11 +266,33 @@ function handleClick(params) {
     margin-bottom: -10rem;
     flex: 1;
     overflow: hidden;
+    position: relative;
 }
 
 .sunburst-chart {
   width: 100%;
   height: 100%;
   /* margin-top: 10%; */
+}
+.loading-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(30,30,30,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #3498db;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 </style>

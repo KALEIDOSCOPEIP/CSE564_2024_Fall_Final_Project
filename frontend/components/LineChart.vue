@@ -16,8 +16,11 @@
                 <Multiselect v-model="selectedType" :options="pollutants" placeholder="Pollutant" class="select" trake-by="value" />
             </div>
         </div>
-        <div class="chart">
+        <div class="chart" style="position:relative;">
             <Line v-if="chartData" ref="chartRef" :data="chartData" :options="chartOptions" />
+            <div v-if="isLoading" class="loading-overlay">
+                <div class="spinner"></div>
+            </div>
         </div>
     </div>
 </template>
@@ -57,6 +60,8 @@ const COLORS = [
 // emit 为触发地图更新事件准备
 const emit = defineEmits(["date-selected"]);
 
+const isLoading = ref(false)
+
 function resetZoom() {
     if (chartRef.value) {
         chartRef.value.resetZoom()
@@ -64,34 +69,44 @@ function resetZoom() {
 }
 
 const fetchCities = async () => {
-    const res = await fetch('http://localhost:5000/api/cities')
-    allCities.value = await res.json()
+    isLoading.value = true
+    try {
+        const res = await fetch('http://localhost:5000/api/cities')
+        allCities.value = await res.json()
+    } finally {
+        isLoading.value = false
+    }
 }
 
 const fetchChartData = async () => {
     if (!selectedCities.value.length) return
-    const params = new URLSearchParams()
-    selectedCities.value.forEach(c => params.append('cities', c))
-    params.append('type', selectedType.value)
-    const res = await fetch(`http://localhost:5000/api/multi_city_timeseries?${params}`)
-    const data = await res.json()
+    isLoading.value = true
+    try {
+        const params = new URLSearchParams()
+        selectedCities.value.forEach(c => params.append('cities', c))
+        params.append('type', selectedType.value)
+        const res = await fetch(`http://localhost:5000/api/multi_city_timeseries?${params}`)
+        const data = await res.json()
 
-    const dates = [...new Set(data.map(row => row.date))].sort()
-    chartData.value = {
-        labels: dates,
-        datasets: selectedCities.value.map((city, i) => {
-            const values = dates.map(d => {
-                const item = data.find(r => r.city === city && r.date === d)
-                return item ? item.value : null
+        const dates = [...new Set(data.map(row => row.date))].sort()
+        chartData.value = {
+            labels: dates,
+            datasets: selectedCities.value.map((city, i) => {
+                const values = dates.map(d => {
+                    const item = data.find(r => r.city === city && r.date === d)
+                    return item ? item.value : null
+                })
+                return {
+                    label: city,
+                    data: values,
+                    borderColor: COLORS[i % COLORS.length],
+                    borderWidth: 2,
+                    pointRadius: 2
+                }
             })
-            return {
-                label: city,
-                data: values,
-                borderColor: COLORS[i % COLORS.length],
-                borderWidth: 2,
-                pointRadius: 2
-            }
-        })
+        }
+    } finally {
+        isLoading.value = false
     }
 }
 
@@ -283,8 +298,30 @@ watch([selectedCities, selectedType], fetchChartData)
 .chart {
     flex: 1;
     overflow: hidden;
+    position: relative;
 }
 
+.loading-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(30,30,30,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #3498db;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 #city-select {
     width: 70%;
 }

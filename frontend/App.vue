@@ -1,37 +1,44 @@
 <template>
   <div class="container">
     <h1 class="title">Air Pollution Dashboard of Chinese Cities</h1>
-    <table class="layout">
-      <tr>
-        <td>
-            <LineChart 
-                :pollutant="selectedPollutant"
-                @date-selected="handleDataSelected"
-                v-model:selectedType="selectedPollutant"
-            />
-        </td>
-        <td rowspan="2">
-            <div style="height: 100%;" ref="map-chart">
-                <MapChart 
-                    :pollutant="selectedPollutant"
-                    :selectedDateInfo="selectedDateInfo"
-                    :data="mapData" 
-                />
-            </div>
-        </td> <!-- 地图占两行 -->
-        <td>
-            <SubburstChart />
-        </td>
-      </tr>
-      <tr>
-        <td><PlaceholderChart index="4" /></td>
-        <td>
-            <div>
-                <BubbleChart />
-            </div>
-        </td>
-      </tr>
-    </table>
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <span class="icon">📈</span> Multi-city Pollutant Trend
+        </div>
+        <LineChart 
+          :pollutant="selectedPollutant"
+          @date-selected="handleDateSelected"
+          v-model:selectedType="selectedPollutant"
+        />
+      </div>
+      <div class="dashboard-card map-card">
+        <div class="dashboard-card-header">
+          <span class="icon">🗺️</span> Map Overview
+        </div>
+        <MapChart 
+          :pollutant="selectedPollutant"
+          :selectedDateInfo="selectedDateInfo"
+          :data="mapData" 
+        />
+      </div>
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <span class="icon">🌞</span> Top-5 Pollutant Sunburst
+        </div>
+        <SubburstChart />
+      </div>
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <span class="icon">🔵</span> Bubble Chart
+        </div>
+        <BubbleChart />
+      </div>
+    </div>
+    <!-- Loading spinner placeholder -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
   </div>
 </template>
 
@@ -59,46 +66,100 @@ const selectedDateInfo = ref(202001)
 function handleDateSelected(info) {
     selectedDateInfo.value = info;
 }
+
+const isLoading = ref(false) // For future loading spinner usage
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
 .container {
   padding: 0.5rem;
-  max-width: 4000px;
+  max-width: 1600px;
   margin: auto;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', Arial, sans-serif;
+  background: linear-gradient(135deg, #232526 0%, #414345 100%);
 }
 .title {
   text-align: center;
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: bold;
-  margin-bottom: 0rem;
-  margin-top: 0rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
+  color: #fff;
+  letter-spacing: 1px;
 }
-.layout {
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2rem;
   width: 100%;
   height: 100%;
-  border-spacing: 1rem;
-  table-layout: fixed;
 }
-td {
-  vertical-align: top;
-  height: 30%;
+.dashboard-card {
+  background: rgba(40, 40, 50, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
 }
-td[rowspan="2"] {
-  height: 100%;
-  width: 40%; /* 地图那列可以稍微宽一些 */
+.dashboard-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  transform: translateY(-2px) scale(1.01);
 }
-td:not([rowspan]) {
-  width: 30%;
+.dashboard-card-header {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #e0e0e0;
 }
-.placeholder {
-  background-color: #374151;
-  border-radius: 8px;
-  height: 100%;
-  padding: 1rem;
-  color: white;
+.icon {
+  font-size: 1.3rem;
+}
+.map-card {
+  grid-row: 1 / span 2;
+  min-height: 820px;
+}
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30,30,30,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+  }
+  .map-card {
+    grid-row: auto;
+    min-height: 400px;
+  }
 }
 </style>

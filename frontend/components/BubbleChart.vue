@@ -3,32 +3,32 @@
     <h2 class="text-xl font-bold mb-4 text-white">Bubble Chart</h2>
 
     <!-- 四个下拉菜单并排一行 -->
-<div class="flex flex-wrap gap-4 mb-6 w-full">
-  <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
-    <label class="text-white whitespace-nowrap">X轴：</label>
-    <div style="flex: 1;">
-      <Multiselect v-model="xField" :options="numericOptions" />
+    <div class="flex flex-wrap gap-4 mb-6 w-full">
+      <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
+        <label class="text-white whitespace-nowrap">X轴：</label>
+        <div style="flex: 1;">
+          <Multiselect v-model="xField" :options="numericOptions" />
+        </div>
+      </div>
+      <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
+        <label class="text-white whitespace-nowrap">Y轴：</label>
+        <div style="flex: 1;">
+          <Multiselect v-model="yField" :options="numericOptions" />
+        </div>
+      </div>
+      <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
+        <label class="text-white whitespace-nowrap">大小：</label>
+        <div style="flex: 1;">
+          <Multiselect v-model="sizeField" :options="numericOptions" />
+        </div>
+      </div>
+      <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
+        <label class="text-white whitespace-nowrap">颜色：</label>
+        <div style="flex: 1;">
+          <Multiselect v-model="colorField" :options="categoricalOptions" />
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
-    <label class="text-white whitespace-nowrap">Y轴：</label>
-    <div style="flex: 1;">
-      <Multiselect v-model="yField" :options="numericOptions" />
-    </div>
-  </div>
-  <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
-    <label class="text-white whitespace-nowrap">大小：</label>
-    <div style="flex: 1;">
-      <Multiselect v-model="sizeField" :options="numericOptions" />
-    </div>
-  </div>
-  <div class="flex items-center space-x-2" style="flex: 1 1 23%; min-width: 180px;">
-    <label class="text-white whitespace-nowrap">颜色：</label>
-    <div style="flex: 1;">
-      <Multiselect v-model="colorField" :options="categoricalOptions" />
-    </div>
-  </div>
-</div>
 
     <!-- 时间滑块 -->
     <div class="flex items-center mb-4">
@@ -38,7 +38,12 @@
     </div>
 
     <!-- 气泡图 -->
-    <svg ref="svgRef" :width="svgWidth" :height="svgHeight"></svg>
+    <div class="chart-area" style="position:relative;">
+      <svg ref="svgRef" :width="svgWidth" :height="svgHeight"></svg>
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="spinner"></div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -64,12 +69,19 @@ const currentYear = computed(() => yearList.value[currentYearIndex.value] || '')
 const svgWidth = 700
 const svgHeight = 450
 
+const isLoading = ref(false)
+
 async function fetchData() {
-  const res = await fetch("http://localhost:5000/api/bubble_data")
-  const data = await res.json()
-  rawData.value = data
-  yearList.value = [...new Set(data.map(d => d.year_month))].sort()
-  drawChart()
+  isLoading.value = true
+  try {
+    const res = await fetch("http://localhost:5000/api/bubble_data")
+    const data = await res.json()
+    rawData.value = data
+    yearList.value = [...new Set(data.map(d => d.year_month))].sort()
+    drawChart()
+  } finally {
+    isLoading.value = false
+  }
 }
 
 function drawChart() {
@@ -103,16 +115,36 @@ function drawChart() {
   g.append("g").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(xScale))
   g.append("g").call(d3.axisLeft(yScale))
 
-  // 圆形气泡
-  g.selectAll("circle")
-    .data(data)
-    .join("circle")
+  // 圆形气泡 with transition
+  const circles = g.selectAll("circle")
+    .data(data, d => d.province)
+
+  circles.enter()
+    .append("circle")
+    .attr("cx", d => xScale(+d[xField.value]))
+    .attr("cy", d => yScale(+d[yField.value]))
+    .attr("r", 0)
+    .attr("fill", d => colorScale(d[colorField.value]))
+    .attr("opacity", 0.75)
+    .attr("stroke", "white")
+    .transition()
+    .duration(800)
+    .attr("r", d => sizeScale(+d[sizeField.value]))
+
+  circles.transition()
+    .duration(800)
     .attr("cx", d => xScale(+d[xField.value]))
     .attr("cy", d => yScale(+d[yField.value]))
     .attr("r", d => sizeScale(+d[sizeField.value]))
     .attr("fill", d => colorScale(d[colorField.value]))
-    .attr("opacity", 0.75)
-    .attr("stroke", "white")
+
+  circles.exit()
+    .transition()
+    .duration(500)
+    .attr("r", 0)
+    .remove()
+
+  g.selectAll("circle")
     .append("title")
     .text(d => `${d.province}\n${xField.value}: ${d[xField.value]}\n${yField.value}: ${d[yField.value]}`)
 
@@ -133,5 +165,26 @@ watch([xField, yField, sizeField, colorField, currentYearIndex], drawChart)
 .multiselect {
   background-color: white;
   color: black;
+}
+.loading-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30,30,30,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #3498db;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
