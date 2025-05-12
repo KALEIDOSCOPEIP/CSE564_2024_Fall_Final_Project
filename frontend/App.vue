@@ -25,7 +25,11 @@
       </tr>
       <tr>
         <td><PlaceholderChart index="4" /></td>
-        <td><PlaceholderChart index="5" /></td>
+        <td>
+            <div>
+                <BubbleChart />
+            </div>
+        </td>
       </tr>
     </table>
   </div>
@@ -35,6 +39,7 @@
 import LineChart from './components/LineChart.vue'
 import MapChart from './components/MapChart.vue'
 import SubburstChart from './components/SunburstChart.vue'
+import BubbleChart from './components/BubbleChart.vue'
 import { ref } from 'vue'
 
 const PlaceholderChart = {
@@ -95,16 +100,5 @@ td:not([rowspan]) {
   height: 100%;
   padding: 1rem;
   color: white;
-}
-</style>
-
-<style>
-/* 隐藏 vue-multiselect 的 aria-label 辅助提示 */
-.multiselect__option [aria-label]::after,
-.multiselect__option [aria-label]::before,
-.multiselect__option [aria-label],
-.multiselect__tag span[aria-label],
-.multiselect__option span[aria-label] {
-  display: none !important;
 }
 </style>

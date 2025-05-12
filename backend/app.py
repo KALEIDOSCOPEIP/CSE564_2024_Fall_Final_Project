@@ -145,6 +145,12 @@ def get_sunburst_data():
 
     return jsonify(result)
 
+@app.route("/api/bubble_data")
+def get_bubble_data():
+    bubble_df = pd.read_csv("../Data/bubble_data_full.csv")
+    data = bubble_df.fillna(0).to_dict(orient="records")
+    return jsonify(data)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

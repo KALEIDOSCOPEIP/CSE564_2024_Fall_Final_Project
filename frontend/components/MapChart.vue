@@ -1,4 +1,5 @@
 <template>
+    <h2 style="text-align: center; margin-top: 1rem; color: azure;">Multi-city Pollutant Trend thr. Years</h2>
     <v-chart :option="mapOptions" autoresize class="map-chart" />
 </template>
 
@@ -61,12 +62,16 @@ const updateMap = async (date, pollutant) => {
 
   chart.value.setOption({
     title: {
-      text: `${date} ${pollutant} Map`,
+      text: `
+      Date: ${String(date).slice(0, 4)}-${String(date).slice(4, 6)}
+      
+      Pollutant: ${pollutant}
+      `,
       left: 'center',
       top: '10%',
       textStyle: {
-        color: 'rgb(210, 210, 210)',
-        fontSize: 24,
+        color: 'azure',
+        fontSize: 18,
         fontWeight: 'bold'
       }
     },
@@ -230,5 +235,6 @@ watch(() => props.selectedDateInfo, async (info) => {
 .map-chart {
     width: 100%;
     height: 100%;
+    margin-top: -5rem;
 }
 </style>

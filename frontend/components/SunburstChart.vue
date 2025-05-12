@@ -246,7 +246,7 @@ function handleClick(params) {
 <style scoped>
 .sunburst-chart-container {
     height: 40%;
-    background-color: #2f2f2f;
+    background-color: rgba(47, 47, 47, 0); /* 深色背景 2f2f2f */
     padding: 2rem;
     border-radius: 15px;
     display: flex;
@@ -256,7 +256,7 @@ function handleClick(params) {
 .sunburst-sector {
     display: flex;
     gap: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: -10rem;
     flex: 1;
     overflow: hidden;
 }

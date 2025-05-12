@@ -1,62 +1,29 @@
 // LineChart.vue - Vue 3 折线图组件（支持缩放、平移、动态横轴标签）
 <template>
     <div class="chart-container">
-    
-    
-    
         <h2 style="text-align: center; margin-top: -1rem; color: azure;">Multi-city Pollutant Trend thr. Years</h2>
-    
-    
-    
         <div class="selectors">
-    
-    
-    
             <div id="city-select">
-    
-    
-    
-                <Multiselect v-model="selectedCities" :options="allCities" :multiple="true" :close-on-select="false" placeholder="Choose Cities" class="select" />
-    
-    
-    
+                <Multiselect 
+                v-model="selectedCities" 
+                :options="allCities" 
+                :multiple="true" 
+                :close-on-select="false" 
+                placeholder="Choose cities" 
+                class="select" />
             </div>
-    
-    
-    
             <div id="pollutant-select">
-    
-    
-    
                 <Multiselect v-model="selectedType" :options="pollutants" placeholder="Pollutant" class="select" trake-by="value" />
-    
-    
-    
             </div>
-    
-    
-    
         </div>
-    
-    
-    
         <div class="chart">
-    
-    
-    
             <Line v-if="chartData" ref="chartRef" :data="chartData" :options="chartOptions" />
-    
-    
-    
         </div>
-    
-    
-    
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import Multiselect from 'vue-multiselect'
 import { Line } from 'vue-chartjs'
 import { Chart, registerables } from 'chart.js'
@@ -65,7 +32,19 @@ import zoomPlugin from 'chartjs-plugin-zoom'
 Chart.register(...registerables, zoomPlugin)
 
 const allCities = ref([])
-const selectedCities = ref(['北京', '上海', '广州', '哈尔滨'])
+// const cityOptions = computed(() => 
+//     allCities.value.map(city => ({
+//         value: city,
+//         label: city,
+//         disabled: selectedCities.value.length >= 5 && !selectedCities.value.includes(city)
+//     }))
+// )
+const selectedCities = ref([
+    '北京',
+    '上海',
+    '广州',
+    '哈尔滨'
+])
 const selectedType = ref('AQI')
 const pollutants = ['AQI', 'PM2.5', 'PM10', 'SO2', 'NO2', 'O3', 'CO']
 const chartData = ref(null)
@@ -284,7 +263,7 @@ watch([selectedCities, selectedType], fetchChartData)
 <style scoped>
 .chart-container {
     height: 40%;
-    background-color: #2f2f2f;
+    background-color: rgba(47, 47, 47, 0);
     padding: 2rem;
     border-radius: 15px;
     display: flex;
