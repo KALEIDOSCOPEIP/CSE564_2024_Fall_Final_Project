@@ -7,9 +7,10 @@ app = Flask(__name__)
 CORS(app)  # 允许前端跨域访问
 
 # 预加载数据
-all_data = pd.read_csv("../Data/merged_all_data.csv")
+all_data = pd.read_csv("../Data/merged_all_data_en.csv")
 all_years = all_data['date'].astype(str).str[:4]
 # extras = pd.read_csv("../Data/Extras.csv")
+bubble_df = pd.read_csv("../Data/bubble_data_full_en.csv")
 
 @app.route("/api/timeseries")
 def timeseries():
@@ -66,9 +67,13 @@ def get_province_data():
     df = all_data.copy()
     df["population"] = pd.to_numeric(df["population"], errors="coerce")
     df["gdp"] = pd.to_numeric(df["gdp"], errors="coerce")
+    df["is_coastal"] = df["is_coastal"].replace({"是": "Yes", "否": "No"})
     grouped = df.groupby("province").agg({
         "population": "sum",
-        "gdp": "sum"
+        "gdp": "sum",
+        "region": "first",
+        "is_coastal": "first",
+        "climate_type": "first",
     }).reset_index()
     # grouped = pd.DataFrame(df.groupby("province"))
     grouped["population"] = (grouped["population"] / 1e9).round(2)
@@ -125,7 +130,7 @@ def get_sunburst_data():
     df = all_data.dropna(subset=["type", "province", "value"])
 
     # 构建旭日图结构
-    result = {"name": "全国", "children": []}
+    result = {"name": "Nation", "children": []}
     for pollutant in df["type"].unique():
         sub_df = df[df["type"] == pollutant]
         province_max = (
@@ -147,9 +152,99 @@ def get_sunburst_data():
 
 @app.route("/api/bubble_data")
 def get_bubble_data():
-    bubble_df = pd.read_csv("../Data/bubble_data_full.csv")
     data = bubble_df.fillna(0).to_dict(orient="records")
     return jsonify(data)
+
+
+@app.route('/api/parallel-data')
+def get_parallel_data():
+    pollutant = request.args.get('type', 'PM2.5')
+    # start = int(request.args.get('start', '2014-05'))
+    start = int(request.args.get('start', '201405').replace('-', ''))
+    end = int(request.args.get('end', '202503').replace('-', ''))
+    # end = int(request.args.get('end', '2025-03'))
+
+    start = start if start >= 201405 else 201405
+    end = end if end <= 202503 else 202503
+    if start > end:
+        start, end = end, start
+    
+    # df_filtered = all_data[(all_data['type'] == pollutant) & 
+    #                    (all_data['date'] >= start) & 
+    #                    (all_data['date'] <= end)]
+    # year_months = bubble_df['year_month'].astype(str).replace('-', '').astype(int)
+    year_months = bubble_df['year_month'].apply(lambda x: int(x.replace('-', '')))
+    df_filtered = bubble_df[ 
+                       (year_months >= start) & 
+                       (year_months <= end)]
+
+    grouped = df_filtered.groupby('province').agg({
+        # 'value': 'mean',
+        'population': 'first',
+        'gdp': 'first',
+        'is_coastal': 'first',
+        'climate_type': 'first',
+
+        'AQI': 'mean',
+        'CO': 'mean',
+        'NO2': 'mean',
+        'O3': 'mean',
+        'PM10': 'mean',
+        'PM2.5': 'mean',
+        'SO2': 'mean',
+    }).reset_index()
+
+    # 映射是否沿海为数值
+    coastal_mapping = {'Yes': 1, 'No': 0}
+    grouped['is_coastal'] = grouped['is_coastal'].map(coastal_mapping)
+    print(grouped['is_coastal'])
+
+    # 映射气候类型为数值
+    climate_mapping = {name: i for i, name in enumerate(grouped['climate_type'].unique())}
+    grouped['climate_code'] = grouped['climate_type'].map(climate_mapping)
+
+    # 归一化数值字段
+    # for col in ['value', 'population', 'gdp']:
+    #     grouped[col] = (grouped[col] - grouped[col].min()) / (grouped[col].max() - grouped[col].min())
+    # for col in ['AQI', 'CO', 'NO2', 'O3', 'PM10', 'PM2.5', 'SO2', ]:
+    #     grouped[col] = (grouped[col] - grouped[col].min()) / (grouped[col].max() - grouped[col].min())
+
+    result = grouped[['province',
+                    #    'value',
+                         'population',
+                           'gdp',
+                             'is_coastal',
+                               'climate_code',
+                               'AQI',
+                               'CO',
+                               'NO2',
+                               'O3',
+                               'PM10',
+                               'PM2.5',
+                               'SO2']].to_dict(orient='records')
+    return jsonify(result)
+
+
+@app.route("/api/radar-data")
+def radar_data():
+    cities = request.args.get("cities", "").split(",")
+    pollutants = ['PM2.5', 'PM10', 'NO2', 'SO2', 'CO', 'O3']
+    result = []
+    max_value = 0
+
+    for city in cities:
+        values = []
+        for p in pollutants:
+            v = all_data[(all_data['city'] == city) & (all_data['type'] == p)]['value'].mean()
+            values.append(round(v, 2) if pd.notna(v) else 0)
+            max_value = max(max_value, v if pd.notna(v) else 0)
+        result.append({"city": city, "values": values})
+
+    return jsonify({
+        "pollutants": pollutants,
+        "series": result,
+        "maxValue": round(max_value * 1.2, 1)  # 稍大于最大值以避免贴边
+    })
 
 
 if __name__ == "__main__":

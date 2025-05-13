@@ -1,7 +1,5 @@
 <template>
-    <div class="sunburst-chart-container">
-        <h2 style="text-align: center; margin-top: -1rem; color: azure;">Top-5 of Each Air Pollutant</h2>
-        <div class="sunburst-sector">
+    <div class="sunburst-sector">
             <v-chart
             v-if="option"
             :option="option"
@@ -10,7 +8,6 @@
             class="sunburst-chart"
         />
         </div>
-    </div>
 </template>
 
 <!-- <script setup>
@@ -135,6 +132,7 @@ function handleClick(params) {
 import { ref, onMounted } from 'vue'
 import VChart from 'vue-echarts'
 import axios from 'axios'
+import { min } from 'd3'
 
 // 固定污染物颜色
 const pollutantColors = {
@@ -152,7 +150,7 @@ onMounted(async () => {
   try {
     const { data } = await axios.get('http://localhost:5000/api/sunburst-data')
 
-    console.log('获取旭日图数据:', data)
+    // console.log('获取旭日图数据:', data)
 
     // 给每个节点设置颜色
     data.children.forEach(pollutantNode => {
@@ -183,7 +181,10 @@ onMounted(async () => {
     //   },
       tooltip: {
         trigger: 'item',
-        formatter: '{b}: {c}'
+        // formatter: '{b}: {c}'
+        formatter: params => {
+            return `${params.name} ${Number(params.value).toFixed(2)}`
+        }
       },
       series: {
         type: 'sunburst',
@@ -196,26 +197,52 @@ onMounted(async () => {
         levels: [
           {
             // 第 1 层：全国
+            r0: '0%',
+            r: '0%',
             itemStyle: { color: '#eeeeee' },
             label: { color: '#000000', fontWeight: 'bold' }
           },
           {
             // 第 2 层：污染物
-            r0: '15%',
-            r: '50%',
+            r0: '0%',
+            r: '15%',
             label: { rotate: 'tangential', fontSize: 12 }
           },
           {
             // 第 3 层：省份
-            r0: '50%',
-            r: '90%',
-            label: { fontSize: 11 }
+            r0: '15%',
+            r: '40%',
+            label: { rotate: 'radial', fontSize: 11 }
+          },
+          {
+            // 第 4 层：省份细节
+            r0: '40%',
+            r: '100%',
+            minShow: false,
+            minAngle: 20,
+            label: { 
+                // show: (params) => {
+                //     const parent = params.treePathInfo?.[1]
+                //     const total = parent.value || 1
+                //     const current = params.data.value || 0
+                //     return current / total > 0.05 // 只显示占比大于5%的省份
+                // },
+                formatter: params => {
+                    const parent = params.treePathInfo?.[1]
+                    const total = parent?.value || 1
+                    const current = params?.data?.value || 0
+                    const ratio = current / total
+                    // console.log('当前省份:', params.name, '占比:', ratio)
+                    return ratio > 0.5 ? params.name : ''
+                },
+                rotate: 'radial',
+                fontSize: 12 },
           }
         ]
       }
     }
   } catch (error) {
-    console.error('❌ 获取旭日图数据失败:', error)
+    console.error('❌ Fail to fetch information', error)
   }
 })
 
@@ -233,8 +260,8 @@ function shadeColor(hex, factor = 1.0) {
 function handleClick(params) {
   const province = params.data.name
   const pollutant = params.treePathInfo?.[1]?.name
-  if (pollutant && province && pollutant !== '全国') {
-    console.log(`点击了 ${pollutant} / ${province}`)
+  if (pollutant && province && pollutant !== 'Nation') {
+    // console.log(`点击了 ${pollutant} / ${province}`)
     // 可使用 emit、Pinia、eventBus 或 route 传递参数到折线图组件
     // emit('selected', { province, pollutant })
   }
@@ -245,20 +272,30 @@ function handleClick(params) {
 
 <style scoped>
 .sunburst-chart-container {
-    height: 40%;
-    background-color: rgba(47, 47, 47, 0); /* 深色背景 2f2f2f */
+    /* height: 27vh;
+    background-color: rgba(47, 47, 47, 0);
     padding: 2rem;
     border-radius: 15px;
     display: flex;
     flex-direction: column;
+    margin-left: -20rem; */
+    width: 400px;
+  height: 400px;
+  position: relative;
+  margin-top: -2rem;
 }
 
 .sunburst-sector {
-    display: flex;
+    /* display: flex;
     gap: 1rem;
-    margin-bottom: -10rem;
+    margin-bottom: -6rem;
     flex: 1;
-    overflow: hidden;
+    overflow: hidden; */
+    width: 350px;
+    height: 450px;
+    position: relative;
+    margin-top: -3rem;
+    margin-bottom: -5rem;
 }
 
 .sunburst-chart {

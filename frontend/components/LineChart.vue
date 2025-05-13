@@ -1,7 +1,7 @@
 // LineChart.vue - Vue 3 折线图组件（支持缩放、平移、动态横轴标签）
 <template>
     <div class="chart-container">
-        <h2 style="text-align: center; margin-top: -1rem; color: azure;">Multi-city Pollutant Trend thr. Years</h2>
+        <h2 style="text-align: center; margin-top: -3rem; color: azure;">Multi-city Pollutant Trend thr. Years</h2>
         <div class="selectors">
             <div id="city-select">
                 <Multiselect 
@@ -9,11 +9,12 @@
                 :options="allCities" 
                 :multiple="true" 
                 :close-on-select="false" 
+                @input="onCityToggle"
                 placeholder="Choose cities" 
                 class="select" />
             </div>
             <div id="pollutant-select">
-                <Multiselect v-model="selectedType" :options="pollutants" placeholder="Pollutant" class="select" trake-by="value" />
+                <Multiselect v-model="selectedType" :options="pollutants" placeholder="Pollutant" class="select" trake-by="value" style="z-index: 1;"/>
             </div>
         </div>
         <div class="chart">
@@ -32,18 +33,11 @@ import zoomPlugin from 'chartjs-plugin-zoom'
 Chart.register(...registerables, zoomPlugin)
 
 const allCities = ref([])
-// const cityOptions = computed(() => 
-//     allCities.value.map(city => ({
-//         value: city,
-//         label: city,
-//         disabled: selectedCities.value.length >= 5 && !selectedCities.value.includes(city)
-//     }))
-// )
 const selectedCities = ref([
-    '北京',
-    '上海',
-    '广州',
-    '哈尔滨'
+    'Beijing',
+    'Shanghai',
+    'Guangzhou',
+    'Harbin'
 ])
 const selectedType = ref('AQI')
 const pollutants = ['AQI', 'PM2.5', 'PM10', 'SO2', 'NO2', 'O3', 'CO']
@@ -54,8 +48,10 @@ const COLORS = [
     '#0099C6', '#DD4477', '#66AA00', '#B82E2E', '#316395'
 ]
 
-// emit 为触发地图更新事件准备
-const emit = defineEmits(["date-selected"]);
+const emit_selectedCities = defineEmits(['update:selectedCities'])
+function onCityToggle(city) {
+    emit('update:selectedCities', newList)
+}
 
 function resetZoom() {
     if (chartRef.value) {
@@ -262,7 +258,7 @@ watch([selectedCities, selectedType], fetchChartData)
 
 <style scoped>
 .chart-container {
-    height: 40%;
+    height: 40vh;
     background-color: rgba(47, 47, 47, 0);
     padding: 2rem;
     border-radius: 15px;
